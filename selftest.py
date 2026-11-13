@@ -16,15 +16,30 @@ HOST = "127.0.0.1"
 PORT = 2405
 
 
+def port_is_taken():
+    try:
+        socket.create_connection((HOST, PORT), timeout=1).close()
+        return True
+    except OSError:
+        return False
+
+
 def frame(data):
     return struct.pack("!I", len(data)) + data
 
 
 def main():
+    if port_is_taken():
+        print(f"Something (probably a server.py you started) is already listening on port {PORT}.")
+        print("Stop it with Ctrl+C in its window, then run selftest.py again.")
+        sys.exit(1)
     here = os.path.dirname(os.path.abspath(__file__))
     server = subprocess.Popen([sys.executable, os.path.join(here, "server.py")], cwd=here)
     try:
         time.sleep(1)
+        if server.poll() is not None:
+            print("server.py stopped right after starting (its error is printed above).")
+            sys.exit(1)
         sys.path.insert(0, here)
         from protocol import recv_msg, send_msg
 
